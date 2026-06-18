@@ -1,0 +1,58 @@
+name: Cron
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "41 4 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cron
+  cancel-in-progress: false
+
+jobs:
+  cron:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref }}
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            accept-flake-config = true
+
+      - name: Update package
+        id: update
+        run: ./update.sh
+
+      - name: Commit and push changes
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git diff --quiet --exit-code version.json package-lock.json; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          version="${{ steps.update.outputs.version }}"
+          short_rev="${{ steps.update.outputs.short_rev }}"
+
+          git add version.json package-lock.json
+          if [[ "${{ steps.update.outputs.rev_changed }}" == "true" ]]; then
+            git commit -m "Update pi-codex-conversion to ${version} (${short_rev})"
+          else
+            git commit -m "Update package-lock.json"
+          fi
+
+          git push origin "HEAD:${BRANCH}"
