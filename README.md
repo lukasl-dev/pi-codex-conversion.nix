@@ -40,3 +40,38 @@ nix build .#pi-codex-conversion
   ];
 }
 ```
+
+## Using with [pi.nix](https://github.com/lukasl-dev/pi.nix)
+
+Add both flakes as inputs:
+
+```nix
+{
+  inputs = {
+    pi.url = "github:lukasl-dev/pi.nix";
+    pi-codex-conversion.url = "github:lukasl-dev/pi-codex-conversion.nix";
+  };
+}
+```
+
+Then point `programs.pi.coding-agent.extensions` at the pi-codex-conversion
+package:
+
+```nix
+{ inputs, pkgs, config, ... }:
+let
+  inherit (inputs.pi-codex-conversion.packages.${pkgs.system}) pi-codex-conversion;
+in
+{
+  imports = [ inputs.pi.nixosModules.default ];
+
+  programs.pi.coding-agent = {
+    enable = true;
+
+    # Load the extension from the Nix store. Its bundled Rust tools and
+    # bin/ wrappers are resolved relative to this path.
+    extensions = [ "${pi-codex-conversion}" ];
+  };
+}
+```
+
