@@ -10,18 +10,6 @@ It provides:
 > [!IMPORTANT]
 > This is not the official packaging for pi-codex-conversion. It vendors the upstream source via `fetchFromGitHub` and rebuilds the Rust tools with `buildRustPackage`.
 
-## Quick start
-
-```bash
-nix run github:lukasl-dev/pi-codex-conversion.nix
-```
-
-Or build it locally:
-
-```bash
-nix build .#pi-codex-conversion
-```
-
 ## Using with [pi.nix](https://github.com/lukasl-dev/pi.nix)
 
 Add both flakes as inputs:
