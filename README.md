@@ -22,26 +22,7 @@ Or build it locally:
 nix build .#pi-codex-conversion
 ```
 
-## Usage
-
-```nix
-{
-  inputs.pi-codex-conversion.url = "github:lukasl-dev/pi-codex-conversion.nix";
-}
-```
-
-### As a package
-
-```nix
-{ inputs, pkgs, ... }:
-{
-  environment.systemPackages = [
-    inputs.pi-codex-conversion.packages.${pkgs.system}.pi-codex-conversion
-  ];
-}
-```
-
-### Using with [pi.nix](https://github.com/lukasl-dev/pi.nix)
+## Using with [pi.nix](https://github.com/lukasl-dev/pi.nix)
 
 Add both flakes as inputs:
 
