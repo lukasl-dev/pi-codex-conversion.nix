@@ -41,7 +41,7 @@ nix build .#pi-codex-conversion
 }
 ```
 
-## Using with [pi.nix](https://github.com/lukasl-dev/pi.nix)
+### Using with [pi.nix](https://github.com/lukasl-dev/pi.nix)
 
 Add both flakes as inputs:
 
