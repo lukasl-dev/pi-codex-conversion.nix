@@ -6,7 +6,9 @@
   pkg-config,
   openssl,
   nodejs,
+  typescript-go,
   src,
+  packageSrc,
   version,
   npmDepsHash,
 }:
@@ -21,17 +23,24 @@ let
     }
     .${stdenv.hostPlatform.system} or (throw "Unsupported system: ${stdenv.hostPlatform.system}");
 
-  packageJson = removeAttrs (builtins.fromJSON (builtins.readFile "${src}/package.json")) [
-    "devDependencies"
-    "peerDependencies"
-  ];
+  upstreamPackageJson = builtins.fromJSON (builtins.readFile "${packageSrc}/package.json");
+  packageJson =
+    (removeAttrs upstreamPackageJson [
+      "devDependencies"
+      "peerDependencies"
+    ])
+    // {
+      scripts = (upstreamPackageJson.scripts or { }) // {
+        build = "tsgo --noCheck -p tsconfig.build.json";
+      };
+    };
 
   tools = rustPlatform.buildRustPackage {
     pname = "pi-codex-conversion-tools";
     inherit version;
 
-    src = "${src}/src/tools";
-    cargoLock.lockFile = "${src}/src/tools/Cargo.lock";
+    src = "${packageSrc}/src/tools";
+    cargoLock.lockFile = "${packageSrc}/src/tools/Cargo.lock";
 
     nativeBuildInputs = [ pkg-config ];
     buildInputs = [ openssl ];
@@ -42,12 +51,14 @@ in
 buildNpmPackage {
   pname = "pi-codex-conversion";
   inherit version src npmDepsHash;
+  sourceRoot = "source/packages/pi-codex-conversion";
 
-  dontNpmBuild = true;
+  nativeBuildInputs = [ typescript-go ];
   makeCacheWritable = true;
   npmFlags = [
     "--legacy-peer-deps"
     "--omit=dev"
+    "--workspaces=false"
   ];
 
   postPatch = ''
@@ -64,13 +75,19 @@ buildNpmPackage {
     mkdir -p $out
     cp -r \
       src \
+      dist \
       bin \
+      code-mode \
+      examples \
+      scripts \
       package.json \
       tsconfig.json \
+      tsconfig.build.json \
       available-tools.png \
       CHANGELOG.md \
       PATH_TOOLS.md \
       README.md \
+      UPSTREAM_SYNC.md \
       LICENSE \
       node_modules \
       $out/

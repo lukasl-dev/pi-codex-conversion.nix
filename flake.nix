@@ -34,13 +34,14 @@
             repo = "howaboua-pi-stuff";
             inherit rev hash;
           };
-          src = "${monorepoSrc}/packages/pi-codex-conversion";
+          packageSrc = "${monorepoSrc}/packages/pi-codex-conversion";
         in
         rec {
           default = pi-codex-conversion;
 
           pi-codex-conversion = pkgs.callPackage ./package.nix {
-            inherit src version npmDepsHash;
+            src = monorepoSrc;
+            inherit packageSrc version npmDepsHash;
           };
 
           update-script-env = pkgs.symlinkJoin {
