@@ -24,6 +24,14 @@ let
     .${stdenv.hostPlatform.system} or (throw "Unsupported system: ${stdenv.hostPlatform.system}");
 
   upstreamPackageJson = builtins.fromJSON (builtins.readFile "${packageSrc}/package.json");
+  upstreamBuildTsconfig = builtins.fromJSON (builtins.readFile "${packageSrc}/tsconfig.build.json");
+  buildTsconfig = upstreamBuildTsconfig // {
+    compilerOptions = upstreamBuildTsconfig.compilerOptions // {
+      # --noCheck still resolves explicitly requested type libraries on newer tsgo releases.
+      types = [ ];
+    };
+  };
+
   packageJson =
     (removeAttrs upstreamPackageJson [
       "devDependencies"
@@ -64,6 +72,10 @@ buildNpmPackage {
   postPatch = ''
     cat > package.json <<'JSON'
     ${builtins.toJSON packageJson}
+    JSON
+
+    cat > tsconfig.build.json <<'JSON'
+    ${builtins.toJSON buildTsconfig}
     JSON
 
     cp ${./package-lock.json} package-lock.json
