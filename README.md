@@ -6,9 +6,24 @@ It provides:
 
 - a `pi-codex-conversion` package built from the upstream npm package plus its Rust tool binaries
 - a daily scheduled workflow that bumps `version.json` and `package-lock.json` when upstream changes
+- `update` and `sync-upstream` flake apps for updating to the latest npm release
 
 > [!IMPORTANT]
 > This is not the official packaging for pi-codex-conversion. It vendors the upstream source via `fetchFromGitHub` and rebuilds the Rust tools with `buildRustPackage`.
+
+## Updating
+
+Update the package metadata and npm lockfile with:
+
+```sh
+nix run .#update
+```
+
+The lower-level synchronization app can be run directly with:
+
+```sh
+nix run .#sync-upstream
+```
 
 ## Using with [pi.nix](https://github.com/lukasl-dev/pi.nix)
 
@@ -43,4 +58,3 @@ in
   };
 }
 ```
-

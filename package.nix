@@ -5,7 +5,8 @@
   rustPlatform,
   pkg-config,
   openssl,
-  nodejs,
+  alsa-lib,
+  libopus,
   typescript-go,
   src,
   packageSrc,
@@ -55,6 +56,22 @@ let
 
     doCheck = false;
   };
+
+  voice = rustPlatform.buildRustPackage {
+    pname = "pi-codex-conversion-voice";
+    inherit version;
+
+    src = "${packageSrc}/src/voice/rust";
+    cargoLock.lockFile = "${packageSrc}/src/voice/rust/Cargo.lock";
+
+    nativeBuildInputs = [ pkg-config ];
+    buildInputs = lib.optionals stdenv.hostPlatform.isLinux [
+      alsa-lib
+      libopus
+    ];
+
+    doCheck = false;
+  };
 in
 buildNpmPackage {
   pname = "pi-codex-conversion";
@@ -88,7 +105,6 @@ buildNpmPackage {
     cp -r \
       src \
       dist \
-      bin \
       code-mode \
       examples \
       scripts \
@@ -97,31 +113,27 @@ buildNpmPackage {
       tsconfig.build.json \
       available-tools.png \
       CHANGELOG.md \
-      PATH_TOOLS.md \
       README.md \
       UPSTREAM_SYNC.md \
       LICENSE \
       node_modules \
       $out/
 
-    for script in apply_patch view_image web_run imagegen; do
-      substituteInPlace $out/bin/$script \
-        --replace-fail "#!/usr/bin/env node" "#!${nodejs}/bin/node"
-    done
-
     rm -rf \
       $out/src/tools/apply-patch/bin/* \
       $out/src/tools/exec/bin/* \
       $out/src/tools/view-image/bin/* \
       $out/src/tools/web-run/bin/* \
-      $out/src/tools/imagegen/bin/*
+      $out/src/tools/imagegen/bin/* \
+      $out/src/voice/bin/*
 
     mkdir -p \
       $out/src/tools/apply-patch/bin/${platformArch} \
       $out/src/tools/exec/bin/${platformArch} \
       $out/src/tools/view-image/bin/${platformArch} \
       $out/src/tools/web-run/bin/${platformArch} \
-      $out/src/tools/imagegen/bin/${platformArch}
+      $out/src/tools/imagegen/bin/${platformArch} \
+      $out/src/voice/bin/${platformArch}
 
     cp ${tools}/bin/apply_patch \
       $out/src/tools/apply-patch/bin/${platformArch}/apply_patch
@@ -133,6 +145,8 @@ buildNpmPackage {
       $out/src/tools/web-run/bin/${platformArch}/web_run
     cp ${tools}/bin/imagegen \
       $out/src/tools/imagegen/bin/${platformArch}/imagegen
+    cp ${voice}/bin/pi-codex-voice \
+      $out/src/voice/bin/${platformArch}/pi-codex-voice
 
     runHook postInstall
   '';

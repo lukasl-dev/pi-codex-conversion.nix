@@ -43,18 +43,28 @@
             src = monorepoSrc;
             inherit packageSrc version npmDepsHash;
           };
+        }
+      );
 
-          update-script-env = pkgs.symlinkJoin {
-            name = "pi-codex-conversion-update-script-env";
-            paths = [
-              pkgs.bash
-              pkgs.curl
-              pkgs.git
-              pkgs.jq
-              pkgs.nix
-              pkgs.nodejs
-              pkgs.prefetch-npm-deps
-            ];
+      apps = forEachSystem (
+        system:
+        let
+          pkgs = import nixpkgs { inherit system; };
+          syncUpstream = import ./sync-upstream.nix { inherit pkgs; };
+          update = import ./update.nix {
+            inherit pkgs syncUpstream;
+          };
+        in
+        {
+          update = {
+            type = "app";
+            program = "${update}/bin/pi-codex-conversion-update";
+            meta.description = "Update pi-codex-conversion to the latest npm release";
+          };
+          sync-upstream = {
+            type = "app";
+            program = "${syncUpstream}/bin/pi-codex-conversion-sync-upstream";
+            meta.description = "Synchronize pi-codex-conversion with its latest npm release";
           };
         }
       );
@@ -64,7 +74,7 @@
         let
           pkgs = import nixpkgs { inherit system; };
         in
-        pkgs.nixfmt-rfc-style
+        pkgs.nixfmt
       );
     };
 }

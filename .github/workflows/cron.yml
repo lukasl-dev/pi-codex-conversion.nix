@@ -1,4 +1,4 @@
-name: Cron
+name: cron
 
 on:
   workflow_dispatch:
@@ -18,25 +18,52 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
+          persist-credentials: false
           fetch-depth: 0
           ref: ${{ github.ref }}
 
       - name: Install Nix
-        uses: cachix/install-nix-action@v31
+        uses: cachix/install-nix-action@a49548c11d9846ad46ecc0115273879b045f001c # v31
         with:
           extra_nix_config: |
             accept-flake-config = true
 
       - name: Update package
         id: update
-        run: ./update.sh
+        run: |
+          previous_rev=$(jq -r .rev version.json)
+
+          nix run path:.#update --accept-flake-config
+
+          version=$(jq -r .version version.json)
+          rev=$(jq -r .rev version.json)
+          rev_changed=false
+          if [[ "$rev" != "$previous_rev" ]]; then
+            rev_changed=true
+          fi
+
+          {
+            echo "version=$version"
+            echo "short_rev=${rev:0:12}"
+            echo "rev_changed=$rev_changed"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build package
+        run: |
+          if git diff --quiet -- version.json package-lock.json; then
+            exit 0
+          fi
+
+          nix build path:. --no-link --accept-flake-config
 
       - name: Commit and push changes
         env:
+          GH_TOKEN: ${{ github.token }}
           BRANCH: ${{ github.ref_name }}
         run: |
+          gh auth setup-git
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
@@ -53,6 +80,12 @@ jobs:
             git commit -m "Update pi-codex-conversion to ${version} (${short_rev})"
           else
             git commit -m "Update package-lock.json"
+          fi
+
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "Updater left uncommitted changes"
+            git status --short
+            exit 1
           fi
 
           git push origin "HEAD:${BRANCH}"
