@@ -2,6 +2,7 @@
   lib,
   stdenv,
   buildNpmPackage,
+  fetchurl,
   rustPlatform,
   pkg-config,
   openssl,
@@ -33,6 +34,21 @@ let
     };
   };
 
+  # Avoid the crates.io API download endpoint, which intermittently rejects
+  # GitHub-hosted Nix builders. The static CDN supports the same URL layout.
+  importCargoLock = rustPlatform.importCargoLock.override {
+    fetchurl =
+      args:
+      fetchurl (
+        args
+        // {
+          url =
+            lib.replaceString "https://crates.io/api/v1/crates" "https://static.crates.io/crates"
+              args.url;
+        }
+      );
+  };
+
   packageJson =
     (removeAttrs upstreamPackageJson [
       "devDependencies"
@@ -40,7 +56,7 @@ let
     ])
     // {
       scripts = (upstreamPackageJson.scripts or { }) // {
-        build = "tsgo --noCheck -p tsconfig.build.json";
+        build = "tsgo --noCheck -p tsconfig.build.json && node ../../scripts/build-extension-changelog.mjs .";
       };
     };
 
@@ -49,7 +65,9 @@ let
     inherit version;
 
     src = "${packageSrc}/src/tools";
-    cargoLock.lockFile = "${packageSrc}/src/tools/Cargo.lock";
+    cargoDeps = importCargoLock {
+      lockFile = "${packageSrc}/src/tools/Cargo.lock";
+    };
 
     nativeBuildInputs = [ pkg-config ];
     buildInputs = [ openssl ];
@@ -62,7 +80,9 @@ let
     inherit version;
 
     src = "${packageSrc}/src/voice/rust";
-    cargoLock.lockFile = "${packageSrc}/src/voice/rust/Cargo.lock";
+    cargoDeps = importCargoLock {
+      lockFile = "${packageSrc}/src/voice/rust/Cargo.lock";
+    };
 
     nativeBuildInputs = [ pkg-config ];
     buildInputs = lib.optionals stdenv.hostPlatform.isLinux [
@@ -108,10 +128,12 @@ buildNpmPackage {
       code-mode \
       examples \
       scripts \
+      types \
       package.json \
       tsconfig.json \
       tsconfig.build.json \
-      available-tools.png \
+      changelog.ts \
+      changelog.js \
       CHANGELOG.md \
       README.md \
       UPSTREAM_SYNC.md \
@@ -123,16 +145,12 @@ buildNpmPackage {
       $out/src/tools/apply-patch/bin/* \
       $out/src/tools/exec/bin/* \
       $out/src/tools/view-image/bin/* \
-      $out/src/tools/web-run/bin/* \
-      $out/src/tools/imagegen/bin/* \
       $out/src/voice/bin/*
 
     mkdir -p \
       $out/src/tools/apply-patch/bin/${platformArch} \
       $out/src/tools/exec/bin/${platformArch} \
       $out/src/tools/view-image/bin/${platformArch} \
-      $out/src/tools/web-run/bin/${platformArch} \
-      $out/src/tools/imagegen/bin/${platformArch} \
       $out/src/voice/bin/${platformArch}
 
     cp ${tools}/bin/apply_patch \
@@ -141,10 +159,6 @@ buildNpmPackage {
       $out/src/tools/exec/bin/${platformArch}/exec_bridge
     cp ${tools}/bin/view_image \
       $out/src/tools/view-image/bin/${platformArch}/view_image
-    cp ${tools}/bin/web_run \
-      $out/src/tools/web-run/bin/${platformArch}/web_run
-    cp ${tools}/bin/imagegen \
-      $out/src/tools/imagegen/bin/${platformArch}/imagegen
     cp ${voice}/bin/pi-codex-voice \
       $out/src/voice/bin/${platformArch}/pi-codex-voice
 
