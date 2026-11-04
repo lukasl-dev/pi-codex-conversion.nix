@@ -5,6 +5,7 @@
   fetchurl,
   rustPlatform,
   pkg-config,
+  cmake,
   openssl,
   alsa-lib,
   libopus,
@@ -84,7 +85,10 @@ let
       lockFile = "${packageSrc}/src/voice/rust/Cargo.lock";
     };
 
-    nativeBuildInputs = [ pkg-config ];
+    nativeBuildInputs = [
+      pkg-config
+      cmake
+    ];
     buildInputs = lib.optionals stdenv.hostPlatform.isLinux [
       alsa-lib
       libopus
