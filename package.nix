@@ -10,6 +10,7 @@
   alsa-lib,
   libopus,
   typescript-go,
+  bun,
   src,
   packageSrc,
   version,
@@ -57,7 +58,7 @@ let
     ])
     // {
       scripts = (upstreamPackageJson.scripts or { }) // {
-        build = "tsgo --noCheck -p tsconfig.build.json && node ../../scripts/build-extension-changelog.mjs .";
+        build = "tsgo --noCheck -p tsconfig.build.json && bun run build:host-settings";
       };
     };
 
@@ -102,7 +103,10 @@ buildNpmPackage {
   inherit version src npmDepsHash;
   sourceRoot = "source/packages/pi-codex-conversion";
 
-  nativeBuildInputs = [ typescript-go ];
+  nativeBuildInputs = [
+    typescript-go
+    bun
+  ];
   makeCacheWritable = true;
   npmFlags = [
     "--legacy-peer-deps"
@@ -133,11 +137,10 @@ buildNpmPackage {
       examples \
       scripts \
       types \
+      vendor \
       package.json \
       tsconfig.json \
       tsconfig.build.json \
-      changelog.ts \
-      changelog.js \
       CHANGELOG.md \
       README.md \
       UPSTREAM_SYNC.md \
